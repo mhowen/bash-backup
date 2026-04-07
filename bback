@@ -2,20 +2,23 @@
 
 BUCKETNAME=
 KEYFILE=
+LOGSERVER=
 
-while getopts "b:k:" opt; do
+while getopts "b:k:l:" opt; do
     case $opt in
 	b) # set S3 bucket name
 	    if [[ -n $OPTARG ]]; then
-		echo "BUCKETNAME: $OPTARG"
 		BUCKETNAME=$OPTARG
 	    fi;;
 	k) # set KEYFILE
 	    if [[ -e $OPTARG ]]; then
-		echo "KEYFILE: $OPTARG"
 		KEYFILE=$OPTARG
 	    else
 		echo "Key file at '$OPTARG' does not exist."
+	    fi;;
+	l) # set LOGSERVER
+	    if [[ -n $OPTARG ]]; then
+		LOGSERVER=$OPTARG
 	    fi;;
 	\?)
 	    echo "Got invalid option '$OPTARG'. Exiting."
@@ -29,6 +32,10 @@ if [[ -z $KEYFILE ]]; then
     exit
 fi
 
+echo "KEYFILE: $KEYFILE"
+echo "BUCKETNAME: $BUCKETNAME"
+echo "LOGSERVER: $LOGSERVER"
+
 # shift option index to positional arguments
 shift $((OPTIND - 1))
 
@@ -36,18 +43,20 @@ archivename="backup-$(date +%Y-%M-%dT%Hh%Mm%Ss%Z).tar.gz"
 
 echo "Archiving and encrypting '$1' as '$archivename'..."
 
-tar czf - $1 | gpg --batch --passphrase-file ./keytest.key -c -o ${archivename}.gpg
+tar czf - $1 | gpg --batch --passphrase-file $KEYFILE -c -o ${archivename}.gpg
 
 echo "Successfully created ${archivename}.gpg"
 
-if [[ -z $BUCKETNAME ]]; then
-    echo "No S3 Bucket provided; skipping upload."
-    exit;
+if [[ -n $BUCKETNAME ]]; then
+    echo "Uploading encrypted archive to S3 Bucket '$BUCKETNAME'..."
+    aws s3 cp "${archivename}.gpg" "s3://${BUCKETNAME}"
 fi
 
-echo "Uploading encrypted archive to S3 Bucket '$BUCKETNAME'..."
-
-aws s3 cp "${archivename}.gpg" "s3://${BUCKETNAME}"
+if [[ -n $LOGSERVER ]]; then
+    echo "Logging backup to remote server '$LOGSERVER'..."
+    LOGMSG="bash-backup: successfully copied archive '${archivename}' to S3 Bucket '${BUCKETNAME}'"
+    echo $LOGMSG | logger -n $LOGSERVER
+fi
 
 echo "Upload successful!"
 
