@@ -32,10 +32,6 @@ if [[ -z $KEYFILE ]]; then
     exit
 fi
 
-echo "KEYFILE: $KEYFILE"
-echo "BUCKETNAME: $BUCKETNAME"
-echo "LOGSERVER: $LOGSERVER"
-
 # shift option index to positional arguments
 shift $((OPTIND - 1))
 
@@ -47,16 +43,19 @@ tar czf - $1 | gpg --batch --passphrase-file $KEYFILE -c -o ${archivename}.gpg
 
 echo "Successfully created ${archivename}.gpg"
 
+S3UPLOAD=
 if [[ -n $BUCKETNAME ]]; then
     echo "Uploading encrypted archive to S3 Bucket '$BUCKETNAME'..."
     aws s3 cp "${archivename}.gpg" "s3://${BUCKETNAME}"
+    S3UPLOAD=$?
 fi
 
-if [[ -n $LOGSERVER ]]; then
-    echo "Logging backup to remote server '$LOGSERVER'..."
-    LOGMSG="bash-backup: successfully copied archive '${archivename}' to S3 Bucket '${BUCKETNAME}'"
-    echo $LOGMSG | logger -n $LOGSERVER
+# If user specified a log server, log success or failure of S3 upload.
+if [[ -n $LOGSERVER && -n $BUCKETNAME ]]; then
+    if [[ $S3UPLOAD -ne 0 ]]; then # S3 Upload failed
+	logger -t bash-backup -n $LOGSERVER "bash-backup created archive '${archivename}' but failed to upload to S3."
+    else                           # S3 Upload succeeded
+	logger -t bash-backup -n $LOGSERVER "bash-backup created archive '${archivename}' and uploaded to S3 Bucket '${BUCKETNAME}'."
+    fi
 fi
-
-echo "Upload successful!"
 
