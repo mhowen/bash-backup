@@ -9,13 +9,18 @@
 # Usage
 To invoke from command line:
 ```sh
-./bash-backup -k path/to/keyfile [-b s3-bucket-name file1] [file2 ... fileN]
+./bash-backup -k path/to/keyfile [-b s3-bucket-name] [-l log-server-address] file1 [file2 ... fileN]
 ```
-Encryption is assumed and program will exit without specification of a file for use as a symmetric key.
+Program will exit without specification of a file for use as a symmetric key.
 
-After compression and encryption, the resulting encrypted archive is written to the working directory.
+After compression and symmetric encryption, the resulting encrypted archive is written to the working directory.
 
 If `-b` is specified and the aws cli has been locally configured, the encrypted archive is copied to the specified Bucket.
+
+## Logging
+To log to a logging server at a given address, include `-l <address>`, e.g., `-l 192.168.0.200`.
+
+`bash-backup` will log the success or failure of the S3 upload, including the timestamped archive name.
 
 # Security Precautions
 Use a cryptographically secure string in the keyfile. To generate a 32-bit keyfile with `openssl`:
