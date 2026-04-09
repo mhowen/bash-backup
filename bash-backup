@@ -50,12 +50,15 @@ if [[ -n $BUCKETNAME ]]; then
     S3UPLOAD=$?
 fi
 
-# If user specified a log server, log success or failure of S3 upload.
-if [[ -n $LOGSERVER && -n $BUCKETNAME ]]; then
-    if [[ $S3UPLOAD -ne 0 ]]; then # S3 Upload failed
-	logger -t bash-backup -n $LOGSERVER "bash-backup created archive '${archivename}' but failed to upload to S3."
-    else                           # S3 Upload succeeded
-	logger -t bash-backup -n $LOGSERVER "bash-backup created archive '${archivename}' and uploaded to S3 Bucket '${BUCKETNAME}'."
+if [[ -n $LOGSERVER ]]; then
+    # User didn't supply an S3 Bucket
+    if [[ -z $S3UPLOAD ]]; then
+	logger -t bash-backup -n $LOGSERVER "bash-backup created local archive '${archivename}'. S3 Upload skipped."
+    # S3 upload failed
+    elif [[ $S3UPLOAD -ne 0 ]]; then # S3 Upload failed
+ 	logger -t bash-backup -n $LOGSERVER "bash-backup created archive '${archivename}' but failed to upload to S3."
+    # S3 Upload successful
+    else
+ 	logger -t bash-backup -n $LOGSERVER "bash-backup created archive '${archivename}' and uploaded to S3 Bucket '${BUCKETNAME}'."
     fi
 fi
-

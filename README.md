@@ -20,7 +20,9 @@ If `-b` is specified and the aws cli has been locally configured, the encrypted 
 ## Logging
 To log to a logging server at a given address, include `-l <address>`, e.g., `-l 192.168.0.200`.
 
-`bash-backup` will log the success or failure of the S3 upload, including the timestamped archive name.
+If `-b` was specified, the log notes the success or failure of the remote copy operation.
+
+If `-b` was _not_ specified, the log notes that remote copying was skipped.
 
 # Security Precautions
 Use a cryptographically secure string in the keyfile. To generate a 32-bit keyfile with `openssl`:
